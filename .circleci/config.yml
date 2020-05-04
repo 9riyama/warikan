@@ -16,9 +16,16 @@ jobs:
 
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - warikan-dep-{{ checksum "go.sum" }}
       - run:
           name : install go modules & Install GolangCI-Lint
           command: make deps
+      - save_cache:
+          key: warikan-dep-{{ checksum "go.sum" }}
+          paths:
+            - /home/circleci/go/pkg/mod
       - run:
           name: "Enforce Go Formatted Code"
           command: "! go fmt ./... 2>&1 | read"
