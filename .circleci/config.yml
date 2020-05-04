@@ -1,8 +1,27 @@
 version: 2.1
+workflows:
+  build:
+    jobs:
+     - build:
+        filters:
+         tags:
+          only: /^v\d+\.\d+\.\d+$/
+
 jobs:
   build:
     docker:
       - image: circleci/golang:1.13
+    
+    working_directory: ~/warikan
+
     steps:
       - checkout
-      - run: echo "hello world"
+      - run:
+          name : install go modules & Install GolangCI-Lint
+          command: make deps
+      - run:
+          name: "Enforce Go Formatted Code"
+          command: "! go fmt ./... 2>&1 | read"
+      - run:
+          name: Run GolangCI-Lint
+          command: make lint
