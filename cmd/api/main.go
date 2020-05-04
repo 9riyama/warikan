@@ -65,9 +65,14 @@ func main() {
 	healthUseCase := usecase.NewHealthUseCase(healthRepositry)
 	healthHandler := handler.NewHealthHandler(healthUseCase)
 
+	paymentRepository := repository.NewPaymentRepository(sqlDB)
+	paymentUsecase := usecase.NewPaymentUseCase(paymentRepository)
+	paymentsHandler := handler.NewPaymentsHandler(paymentUsecase)
+
 	r.Route("/warikan/v1", func(r chi.Router) {
 
 		r.Get("/health", healthHandler.Health)
+		r.Post("/payments/{id}", paymentsHandler.CreateData)
 	})
 
 	srv := &http.Server{
