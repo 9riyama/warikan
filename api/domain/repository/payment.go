@@ -11,6 +11,7 @@ import (
 
 type PaymentRepository interface {
 	Create(*model.Payment) (*model.Payment, error)
+	Update(*model.Payment) (*model.Payment, error)
 }
 
 func NewPaymentRepository(db *sqlx.DB) *paymentRepository {
@@ -48,6 +49,7 @@ func (r *paymentRepository) Create(mp *model.Payment) (*model.Payment, error) {
 
 func (*paymentRepository) toModel(u *persistence.Payment) *model.Payment {
 	payment := &model.Payment{
+		ID:          u.ID,
 		UserID:      u.UserID,
 		CategoryID:  u.CategoryID,
 		PayerID:     u.PayerID,
@@ -59,4 +61,25 @@ func (*paymentRepository) toModel(u *persistence.Payment) *model.Payment {
 	}
 
 	return payment
+}
+
+func (r *paymentRepository) Update(mp *model.Payment) (*model.Payment, error) {
+	p, err := persistence.PaymentByID(r.db, mp.ID)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	p.CategoryID = mp.CategoryID
+	p.PayerID = mp.PayerID
+	p.Description = mp.Description
+	p.PaymentDate = mp.PaymentDate
+	p.Payment = mp.Payment
+
+	if err := p.Save(r.db); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	payment := r.toModel(p)
+
+	return payment, nil
 }

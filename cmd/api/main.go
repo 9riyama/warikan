@@ -70,9 +70,11 @@ func main() {
 	paymentsHandler := handler.NewPaymentsHandler(paymentUsecase)
 
 	r.Route("/warikan/v1", func(r chi.Router) {
-
+		r.Route("/users", func(r chi.Router) {
+			r.Post("/{id}/payments", paymentsHandler.CreateData)
+			r.Patch("/{id}/payments/{payment_id}", paymentsHandler.UpdateData)
+		})
 		r.Get("/health", healthHandler.Health)
-		r.Post("/payments/{id}", paymentsHandler.CreateData)
 	})
 
 	srv := &http.Server{
