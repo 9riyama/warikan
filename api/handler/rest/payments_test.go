@@ -195,6 +195,68 @@ func Test_paymentsHandler_UpdateData(t *testing.T) {
 	}
 }
 
+func Test_paymentsHandler_DeleteData(t *testing.T) {
+	tests := []struct {
+		name         string
+		pID          int
+		paymentID    string
+		useCaseError error
+		wantCode     int
+		wantBody     string
+	}{
+		{
+			name:         "Success",
+			pID:          1,
+			paymentID:    "1",
+			useCaseError: nil,
+			wantCode:     http.StatusNoContent,
+			wantBody:     "",
+		},
+		{
+			name:         "Bad request error",
+			pID:          1,
+			paymentID:    "string",
+			useCaseError: errors.New("usecase error"),
+			wantCode:     http.StatusBadRequest,
+			wantBody:     "{\"message\":\"Bad Request\"}\n",
+		},
+		{
+			name:         "Internal server error",
+			pID:          1,
+			paymentID:    "1",
+			useCaseError: errors.New("usecase error"),
+			wantCode:     http.StatusInternalServerError,
+			wantBody:     "{\"message\":\"Internal Server Error\"}\n",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mock := &mockPaymentUseCase{}
+			mock.On("DeleteByID", tt.pID).Return(tt.useCaseError)
+
+			r := httptest.NewRequest(http.MethodDelete, "/", nil)
+			rr := httptest.NewRecorder()
+			h := rest.NewPaymentsHandler(mock)
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("payment_id", tt.paymentID)
+			r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
+
+			h.DeleteData(rr, r)
+
+			if diff := cmp.Diff(tt.wantCode, rr.Code); diff != "" {
+				t.Errorf("DeleteData() mismatch status code (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.wantBody, rr.Body.String()); diff != "" {
+				t.Errorf("DeleteData() mismatch body (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 type mockPaymentUseCase struct {
 	mock.Mock
 	usecase.PaymentUseCase
@@ -208,4 +270,9 @@ func (m *mockPaymentUseCase) Create(param *usecase.CreatePaymentParam, userID in
 func (m *mockPaymentUseCase) Update(param *usecase.UpdatePaymentParam, userID, paymentID int) (*model.Payment, error) {
 	ret := m.Called(param, userID, paymentID)
 	return ret.Get(0).(*model.Payment), ret.Error(1)
+}
+
+func (m *mockPaymentUseCase) DeleteByID(paymentID int) error {
+	ret := m.Called(paymentID)
+	return ret.Error(0)
 }

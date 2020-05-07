@@ -12,6 +12,7 @@ import (
 type PaymentRepository interface {
 	Create(*model.Payment) (*model.Payment, error)
 	Update(*model.Payment) (*model.Payment, error)
+	DeleteByID(paymentID int) error
 }
 
 func NewPaymentRepository(db *sqlx.DB) *paymentRepository {
@@ -82,4 +83,16 @@ func (r *paymentRepository) Update(mp *model.Payment) (*model.Payment, error) {
 	payment := r.toModel(p)
 
 	return payment, nil
+}
+
+func (r *paymentRepository) DeleteByID(paymentID int) error {
+	p, err := persistence.PaymentByID(r.db, paymentID)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	err = p.Delete(r.db)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
