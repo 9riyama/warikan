@@ -228,6 +228,56 @@ func TestPaymentsUseCase_Update(t *testing.T) {
 	}
 }
 
+func TestPaymentsUseCase_DeleteByID(t *testing.T) {
+	tests := []struct {
+		name      string
+		paymentID int
+		mockErr   error
+		wantErr   error
+	}{
+		{
+			name:      "Success",
+			paymentID: 1,
+			mockErr:   nil,
+			wantErr:   nil,
+		},
+		{
+			name:      "Repository error",
+			paymentID: 1,
+			mockErr:   errors.New("repository error"),
+			wantErr:   usecase.InternalServerError{},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			m := &mockPaymentRepository{}
+			m.On("DeleteByID", tt.paymentID).Return(tt.mockErr)
+
+			u := usecase.NewPaymentUseCase(m)
+			err := u.DeleteByID(tt.paymentID)
+			if tt.wantErr != nil {
+				if err == nil {
+					t.Error("expected error, but got nil")
+					return
+				}
+				if g, e := err.Error(), tt.wantErr.Error(); g != e {
+					t.Errorf("unexpected error:\nwant: %v\ngot : %v", e, g)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("err should be nil, but got %q", err)
+				return
+			}
+		})
+	}
+}
+
 type mockPaymentRepository struct {
 	mock.Mock
 }
@@ -240,4 +290,9 @@ func (m *mockPaymentRepository) Create(mp *model.Payment) (*model.Payment, error
 func (m *mockPaymentRepository) Update(mp *model.Payment) (*model.Payment, error) {
 	ret := m.Called(mp)
 	return ret.Get(0).(*model.Payment), ret.Error(1)
+}
+
+func (m *mockPaymentRepository) DeleteByID(paymentID int) error {
+	ret := m.Called(paymentID)
+	return ret.Error(0)
 }

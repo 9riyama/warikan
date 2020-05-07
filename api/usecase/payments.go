@@ -13,6 +13,7 @@ import (
 type PaymentUseCase interface {
 	Create(req *CreatePaymentParam, userID int) (*model.Payment, error)
 	Update(req *UpdatePaymentParam, userID int, paymentID int) (*model.Payment, error)
+	DeleteByID(paymentID int) error
 }
 
 func NewPaymentUseCase(r repository.PaymentRepository) *paymentUsecase {
@@ -95,4 +96,13 @@ func (u *paymentUsecase) Update(param *UpdatePaymentParam, userID, paymentID int
 		return nil, InternalServerError{}
 	}
 	return payment, nil
+}
+
+func (u *paymentUsecase) DeleteByID(paymentID int) error {
+	err := u.PaymentRepository.DeleteByID(paymentID)
+	if err != nil {
+		log.Println("repository error")
+		return InternalServerError{}
+	}
+	return nil
 }

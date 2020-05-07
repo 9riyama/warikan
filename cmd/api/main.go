@@ -73,6 +73,7 @@ func main() {
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/{id}/payments", paymentsHandler.CreateData)
 			r.Patch("/{id}/payments/{payment_id}", paymentsHandler.UpdateData)
+			r.Delete("/payments/{payment_id}", paymentsHandler.DeleteData)
 		})
 		r.Get("/health", healthHandler.Health)
 	})

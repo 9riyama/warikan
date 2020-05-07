@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	"github.com/warikan/api/domain/model"
 	"github.com/warikan/api/domain/repository"
 )
@@ -144,6 +145,46 @@ func Test_PaymentRepository_Update(t *testing.T) {
 
 			if diff := cmp.Diff(tt.want, got, cmpopts.IgnoreFields(model.Payment{}, "CreatedAt", "UpdatedAt")); diff != "" {
 				t.Errorf("Update() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func Test_PaymentRepository_DeleteByID(t *testing.T) {
+	r := repository.NewPaymentRepository(testDB)
+
+	tests := []struct {
+		name      string
+		paymentID int
+		setup     func()
+		wantErr   error
+	}{
+		{
+			name:      "Success",
+			paymentID: 900,
+			setup: func() {
+				loadDefaultFixture(testDB, t)
+			},
+			wantErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup()
+			err := r.DeleteByID(tt.paymentID)
+			if tt.wantErr != nil {
+				if err == nil {
+					t.Error("expected error, but got nil")
+					return
+				}
+
+				err = errors.Cause(err)
+				if g, e := err.Error(), tt.wantErr.Error(); g != e {
+					t.Errorf("unexpected error:\nwant: %q\ngot : %q", e, g)
+					return
+				}
+				return
 			}
 		})
 	}
