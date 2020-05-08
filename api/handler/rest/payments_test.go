@@ -198,32 +198,50 @@ func Test_paymentsHandler_UpdateData(t *testing.T) {
 func Test_paymentsHandler_DeleteData(t *testing.T) {
 	tests := []struct {
 		name         string
-		pID          int
-		paymentID    string
+		strUserID    string
+		userID       int
+		strPaymentID string
+		paymentID    int
 		useCaseError error
 		wantCode     int
 		wantBody     string
 	}{
 		{
 			name:         "Success",
-			pID:          1,
-			paymentID:    "1",
+			strUserID:    "1",
+			userID:       1,
+			strPaymentID: "1",
+			paymentID:    1,
 			useCaseError: nil,
 			wantCode:     http.StatusNoContent,
 			wantBody:     "",
 		},
 		{
-			name:         "Bad request error",
-			pID:          1,
-			paymentID:    "string",
+			name:         "Bad request error paymentID is String",
+			strUserID:    "1",
+			userID:       1,
+			strPaymentID: "string",
+			paymentID:    1,
+			useCaseError: errors.New("usecase error"),
+			wantCode:     http.StatusBadRequest,
+			wantBody:     "{\"message\":\"Bad Request\"}\n",
+		},
+		{
+			name:         "Bad request error userID is String",
+			strUserID:    "string",
+			userID:       1,
+			strPaymentID: "1",
+			paymentID:    1,
 			useCaseError: errors.New("usecase error"),
 			wantCode:     http.StatusBadRequest,
 			wantBody:     "{\"message\":\"Bad Request\"}\n",
 		},
 		{
 			name:         "Internal server error",
-			pID:          1,
-			paymentID:    "1",
+			strUserID:    "1",
+			userID:       1,
+			strPaymentID: "1",
+			paymentID:    1,
 			useCaseError: errors.New("usecase error"),
 			wantCode:     http.StatusInternalServerError,
 			wantBody:     "{\"message\":\"Internal Server Error\"}\n",
@@ -235,14 +253,15 @@ func Test_paymentsHandler_DeleteData(t *testing.T) {
 			t.Parallel()
 
 			mock := &mockPaymentUseCase{}
-			mock.On("DeleteByID", tt.pID).Return(tt.useCaseError)
+			mock.On("DeleteByID", tt.userID, tt.paymentID).Return(tt.useCaseError)
 
 			r := httptest.NewRequest(http.MethodDelete, "/", nil)
 			rr := httptest.NewRecorder()
 			h := rest.NewPaymentsHandler(mock)
 
 			rctx := chi.NewRouteContext()
-			rctx.URLParams.Add("payment_id", tt.paymentID)
+			rctx.URLParams.Add("id", tt.strUserID)
+			rctx.URLParams.Add("payment_id", tt.strPaymentID)
 			r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
 
 			h.DeleteData(rr, r)
@@ -272,7 +291,7 @@ func (m *mockPaymentUseCase) Update(param *usecase.UpdatePaymentParam, userID, p
 	return ret.Get(0).(*model.Payment), ret.Error(1)
 }
 
-func (m *mockPaymentUseCase) DeleteByID(paymentID int) error {
-	ret := m.Called(paymentID)
+func (m *mockPaymentUseCase) DeleteByID(userID, paymentID int) error {
+	ret := m.Called(userID, paymentID)
 	return ret.Error(0)
 }

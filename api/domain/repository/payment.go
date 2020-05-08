@@ -12,7 +12,7 @@ import (
 type PaymentRepository interface {
 	Create(*model.Payment) (*model.Payment, error)
 	Update(*model.Payment) (*model.Payment, error)
-	DeleteByID(paymentID int) error
+	DeleteByID(userID, paymentID int) error
 }
 
 func NewPaymentRepository(db *sqlx.DB) *paymentRepository {
@@ -65,6 +65,8 @@ func (*paymentRepository) toModel(u *persistence.Payment) *model.Payment {
 }
 
 func (r *paymentRepository) Update(mp *model.Payment) (*model.Payment, error) {
+	now := time.Now()
+
 	p, err := persistence.PaymentByID(r.db, mp.ID)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -75,6 +77,7 @@ func (r *paymentRepository) Update(mp *model.Payment) (*model.Payment, error) {
 	p.Description = mp.Description
 	p.PaymentDate = mp.PaymentDate
 	p.Payment = mp.Payment
+	p.UpdatedAt = now
 
 	if err := p.Save(r.db); err != nil {
 		return nil, errors.WithStack(err)
@@ -85,11 +88,16 @@ func (r *paymentRepository) Update(mp *model.Payment) (*model.Payment, error) {
 	return payment, nil
 }
 
-func (r *paymentRepository) DeleteByID(paymentID int) error {
+func (r *paymentRepository) DeleteByID(userID, paymentID int) error {
 	p, err := persistence.PaymentByID(r.db, paymentID)
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	if p.UserID != userID {
+		return errors.WithStack(err)
+	}
+
 	err = p.Delete(r.db)
 	if err != nil {
 		return errors.WithStack(err)
