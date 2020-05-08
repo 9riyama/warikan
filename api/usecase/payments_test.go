@@ -231,18 +231,21 @@ func TestPaymentsUseCase_Update(t *testing.T) {
 func TestPaymentsUseCase_DeleteByID(t *testing.T) {
 	tests := []struct {
 		name      string
+		userID    int
 		paymentID int
 		mockErr   error
 		wantErr   error
 	}{
 		{
 			name:      "Success",
+			userID:    1,
 			paymentID: 1,
 			mockErr:   nil,
 			wantErr:   nil,
 		},
 		{
 			name:      "Repository error",
+			userID:    1,
 			paymentID: 1,
 			mockErr:   errors.New("repository error"),
 			wantErr:   usecase.InternalServerError{},
@@ -255,10 +258,10 @@ func TestPaymentsUseCase_DeleteByID(t *testing.T) {
 			t.Parallel()
 
 			m := &mockPaymentRepository{}
-			m.On("DeleteByID", tt.paymentID).Return(tt.mockErr)
+			m.On("DeleteByID", tt.userID, tt.paymentID).Return(tt.mockErr)
 
 			u := usecase.NewPaymentUseCase(m)
-			err := u.DeleteByID(tt.paymentID)
+			err := u.DeleteByID(tt.userID, tt.paymentID)
 			if tt.wantErr != nil {
 				if err == nil {
 					t.Error("expected error, but got nil")
@@ -292,7 +295,7 @@ func (m *mockPaymentRepository) Update(mp *model.Payment) (*model.Payment, error
 	return ret.Get(0).(*model.Payment), ret.Error(1)
 }
 
-func (m *mockPaymentRepository) DeleteByID(paymentID int) error {
-	ret := m.Called(paymentID)
+func (m *mockPaymentRepository) DeleteByID(userID, paymentID int) error {
+	ret := m.Called(userID, paymentID)
 	return ret.Error(0)
 }

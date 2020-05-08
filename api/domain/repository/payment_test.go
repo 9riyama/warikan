@@ -16,12 +16,12 @@ import (
 
 func Test_PaymentRepository_Create(t *testing.T) {
 	r := repository.NewPaymentRepository(testDB)
+	loadDefaultFixture(testDB, t)
 	now := time.Now()
 
 	tests := []struct {
 		name    string
 		arg     *model.Payment
-		setup   func()
 		want    *model.Payment
 		wantErr error
 	}{
@@ -34,9 +34,6 @@ func Test_PaymentRepository_Create(t *testing.T) {
 				Description: sql.NullString{String: "作成", Valid: true},
 				PaymentDate: time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
 				Payment:     1234,
-			},
-			setup: func() {
-				loadDefaultFixture(testDB, t)
 			},
 			want: &model.Payment{
 				UserID:      1,
@@ -54,7 +51,6 @@ func Test_PaymentRepository_Create(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setup()
 			got, err := r.Create(tt.arg)
 			if tt.wantErr != nil {
 				if err == nil {
@@ -83,12 +79,12 @@ func Test_PaymentRepository_Create(t *testing.T) {
 
 func Test_PaymentRepository_Update(t *testing.T) {
 	r := repository.NewPaymentRepository(testDB)
+	loadDefaultFixture(testDB, t)
 	now := time.Now()
 
 	tests := []struct {
 		name    string
 		arg     *model.Payment
-		setup   func()
 		want    *model.Payment
 		wantErr error
 	}{
@@ -103,8 +99,29 @@ func Test_PaymentRepository_Update(t *testing.T) {
 				PaymentDate: time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
 				Payment:     5555,
 			},
-			setup: func() {
-				loadDefaultFixture(testDB, t)
+			want: &model.Payment{
+				ID:          1,
+				UserID:      1,
+				CategoryID:  1,
+				PayerID:     1,
+				Description: sql.NullString{String: "更新", Valid: true},
+				PaymentDate: time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
+				Payment:     5555,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+			wantErr: nil,
+		},
+		{
+			name: "Success",
+			arg: &model.Payment{
+				ID:          1,
+				UserID:      1,
+				CategoryID:  1,
+				PayerID:     1,
+				Description: sql.NullString{String: "更新", Valid: true},
+				PaymentDate: time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
+				Payment:     5555,
 			},
 			want: &model.Payment{
 				ID:          1,
@@ -123,7 +140,6 @@ func Test_PaymentRepository_Update(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setup()
 			got, err := r.Update(tt.arg)
 			if tt.wantErr != nil {
 				if err == nil {
@@ -152,27 +168,25 @@ func Test_PaymentRepository_Update(t *testing.T) {
 
 func Test_PaymentRepository_DeleteByID(t *testing.T) {
 	r := repository.NewPaymentRepository(testDB)
+	loadDefaultFixture(testDB, t)
 
 	tests := []struct {
 		name      string
+		userID    int
 		paymentID int
-		setup     func()
 		wantErr   error
 	}{
 		{
 			name:      "Success",
-			paymentID: 900,
-			setup: func() {
-				loadDefaultFixture(testDB, t)
-			},
-			wantErr: nil,
+			userID:    1,
+			paymentID: 1,
+			wantErr:   nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setup()
-			err := r.DeleteByID(tt.paymentID)
+			err := r.DeleteByID(tt.userID, tt.paymentID)
 			if tt.wantErr != nil {
 				if err == nil {
 					t.Error("expected error, but got nil")

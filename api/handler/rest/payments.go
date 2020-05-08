@@ -72,14 +72,21 @@ func (h *paymentsHandler) UpdateData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *paymentsHandler) DeleteData(w http.ResponseWriter, r *http.Request) {
+	strUserID := chi.URLParam(r, "id")
 	strPayemntID := chi.URLParam(r, "payment_id")
+
+	UserID, err := strconv.Atoi(strUserID)
+	if err != nil {
+		badRequestError(w)
+		return
+	}
 	payemntID, err := strconv.Atoi(strPayemntID)
 	if err != nil {
 		badRequestError(w)
 		return
 	}
 
-	if err := h.useCase.DeleteByID(payemntID); err != nil {
+	if err := h.useCase.DeleteByID(UserID, payemntID); err != nil {
 		httpError(w, err)
 		return
 	}
