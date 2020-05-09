@@ -18,6 +18,89 @@ import (
 	"github.com/warikan/api/usecase"
 )
 
+func Test_paymentsHandler_GetData(t *testing.T) {
+	tests := []struct {
+		name         string
+		strUserID    string
+		strCursor    string
+		payments     []*usecase.Payment
+		userID       int
+		cursor       int
+		useCaseError error
+		wantCode     int
+		wantBody     string
+	}{
+		{
+			name:      "Success",
+			strUserID: "1",
+			strCursor: "1",
+			payments: []*usecase.Payment{
+				{
+					ID:           1,
+					CategoryName: "カテゴリー名",
+					PayerName:    "パートナー",
+					PaymentDate:  "2020-04-01",
+					Payment:      1234,
+					CreatedAt:    "2020-04-01 09:00:00",
+				},
+			},
+			userID:       1,
+			cursor:       1,
+			useCaseError: nil,
+			wantCode:     200,
+			wantBody:     "{\"payments\":[{\"id\":1,\"category_name\":\"カテゴリー名\",\"payer_name\":\"パートナー\",\"payment_date\":\"2020-04-01\",\"payment\":1234,\"created_at\":\"2020-04-01 09:00:00\"}]}\n",
+		},
+		{
+			name:      "ConversionError",
+			strUserID: "1",
+			strCursor: "string",
+			payments:  []*usecase.Payment{},
+			userID:    999,
+			cursor:    999,
+			wantCode:  200,
+			wantBody:  "{\"payments\":[]}\n",
+		},
+		{
+			name:         "InternalServerError",
+			strUserID:    "999",
+			strCursor:    "999",
+			payments:     []*usecase.Payment{},
+			userID:       999,
+			cursor:       999,
+			useCaseError: usecase.InternalServerError{},
+			wantCode:     500,
+			wantBody:     "{\"message\":\"Internal Server Error\"}\n",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mock := &mockPaymentUseCase{}
+			mock.On("GetData", tt.userID, tt.cursor).Return(tt.payments, tt.useCaseError)
+
+			r := httptest.NewRequest(http.MethodGet, "/"+tt.strUserID+"/payments?cursor="+tt.strCursor, nil)
+			rr := httptest.NewRecorder()
+			h := rest.NewPaymentsHandler(mock)
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("user_id", tt.strUserID)
+			r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
+
+			h.GetData(rr, r)
+
+			if diff := cmp.Diff(tt.wantCode, rr.Code); diff != "" {
+				t.Errorf("GetData() mismatch status code (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.wantBody, rr.Body.String()); diff != "" {
+				t.Errorf("GetData() mismatch body (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func Test_paymentsHandler_CreateData(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -88,7 +171,7 @@ func Test_paymentsHandler_CreateData(t *testing.T) {
 			h := rest.NewPaymentsHandler(mock)
 
 			rctx := chi.NewRouteContext()
-			rctx.URLParams.Add("id", tt.userID)
+			rctx.URLParams.Add("user_id", tt.userID)
 			r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
 
 			h.CreateData(rr, r)
@@ -179,7 +262,7 @@ func Test_paymentsHandler_UpdateData(t *testing.T) {
 			h := rest.NewPaymentsHandler(mock)
 
 			rctx := chi.NewRouteContext()
-			rctx.URLParams.Add("id", tt.userID)
+			rctx.URLParams.Add("user_id", tt.userID)
 			rctx.URLParams.Add("payment_id", tt.paymentID)
 			r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
 
@@ -260,7 +343,7 @@ func Test_paymentsHandler_DeleteData(t *testing.T) {
 			h := rest.NewPaymentsHandler(mock)
 
 			rctx := chi.NewRouteContext()
-			rctx.URLParams.Add("id", tt.strUserID)
+			rctx.URLParams.Add("user_id", tt.strUserID)
 			rctx.URLParams.Add("payment_id", tt.strPaymentID)
 			r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
 
@@ -279,6 +362,11 @@ func Test_paymentsHandler_DeleteData(t *testing.T) {
 type mockPaymentUseCase struct {
 	mock.Mock
 	usecase.PaymentUseCase
+}
+
+func (m *mockPaymentUseCase) GetData(userID, cursor int) ([]*usecase.Payment, error) {
+	ret := m.Called(userID, cursor)
+	return ret.Get(0).([]*usecase.Payment), ret.Error(1)
 }
 
 func (m *mockPaymentUseCase) Create(param *usecase.CreatePaymentParam, userID int) (*model.Payment, error) {

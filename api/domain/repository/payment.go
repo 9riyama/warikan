@@ -10,6 +10,7 @@ import (
 )
 
 type PaymentRepository interface {
+	GetData(userID, cursor int) ([]*model.Payment, error)
 	Create(*model.Payment) (*model.Payment, error)
 	Update(*model.Payment) (*model.Payment, error)
 	DeleteByID(userID, paymentID int) error
@@ -23,6 +24,20 @@ var _ PaymentRepository = &paymentRepository{}
 
 type paymentRepository struct {
 	db *sqlx.DB
+}
+
+func (r *paymentRepository) GetData(userID, cursor int) ([]*model.Payment, error) {
+	const (
+		limit = 20
+	)
+
+	payments, err := persistence.SelectPayments(r.db, userID, limit, cursor)
+
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return payments, nil
 }
 
 func (r *paymentRepository) Create(mp *model.Payment) (*model.Payment, error) {
