@@ -10,6 +10,7 @@ import (
 )
 
 type PaymentsHandler interface {
+	GetData(http.ResponseWriter, *http.Request)
 	CreateData(http.ResponseWriter, *http.Request)
 	UpdateData(http.ResponseWriter, *http.Request)
 	DeleteData(http.ResponseWriter, *http.Request)
@@ -25,8 +26,45 @@ func NewPaymentsHandler(u usecase.PaymentUseCase) PaymentsHandler {
 	}
 }
 
+type paymentHandlerResponse struct {
+	Payments []*usecase.Payment `json:"payments"`
+}
+
+func (h *paymentsHandler) GetData(w http.ResponseWriter, r *http.Request) {
+
+	strCursor := r.URL.Query().Get("cursor")
+	if strCursor == "" {
+		strCursor = "0"
+	}
+	cursor, err := strconv.Atoi(strCursor)
+
+	i := chi.URLParam(r, "user_id")
+	userID, _ := strconv.Atoi(i)
+
+	res := paymentHandlerResponse{}
+	if err != nil {
+		res.Payments = make([]*usecase.Payment, 0)
+		if err := json.NewEncoder(w).Encode(res); err != nil {
+			internalServerError(w)
+		}
+		return
+	}
+
+	payments, err := h.useCase.GetData(userID, cursor)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	res.Payments = payments
+
+	if err := json.NewEncoder(w).Encode(res); err != nil {
+		internalServerError(w)
+	}
+}
+
 func (h *paymentsHandler) CreateData(w http.ResponseWriter, r *http.Request) {
-	i := chi.URLParam(r, "id")
+	i := chi.URLParam(r, "user_id")
 	userID, _ := strconv.Atoi(i)
 
 	req := usecase.CreatePaymentParam{}
@@ -48,7 +86,7 @@ func (h *paymentsHandler) CreateData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *paymentsHandler) UpdateData(w http.ResponseWriter, r *http.Request) {
-	strUserID := chi.URLParam(r, "id")
+	strUserID := chi.URLParam(r, "user_id")
 	strPayemntID := chi.URLParam(r, "payment_id")
 	userID, _ := strconv.Atoi(strUserID)
 	payemntID, _ := strconv.Atoi(strPayemntID)
@@ -72,7 +110,7 @@ func (h *paymentsHandler) UpdateData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *paymentsHandler) DeleteData(w http.ResponseWriter, r *http.Request) {
-	strUserID := chi.URLParam(r, "id")
+	strUserID := chi.URLParam(r, "user_id")
 	strPayemntID := chi.URLParam(r, "payment_id")
 
 	UserID, err := strconv.Atoi(strUserID)

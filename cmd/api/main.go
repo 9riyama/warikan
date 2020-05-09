@@ -71,9 +71,10 @@ func main() {
 
 	r.Route("/warikan/v1", func(r chi.Router) {
 		r.Route("/users", func(r chi.Router) {
-			r.Post("/{id}/payments", paymentsHandler.CreateData)
-			r.Patch("/{id}/payments/{payment_id}", paymentsHandler.UpdateData)
-			r.Delete("/payments/{payment_id}", paymentsHandler.DeleteData)
+			r.Get("/{user_id}/payments", paymentsHandler.GetData)
+			r.Post("/{user_id}/payments", paymentsHandler.CreateData)
+			r.Patch("/{user_id}/payments/{payment_id}", paymentsHandler.UpdateData)
+			r.Delete("/{user_id}/payments/{payment_id}", paymentsHandler.DeleteData)
 		})
 		r.Get("/health", healthHandler.Health)
 	})

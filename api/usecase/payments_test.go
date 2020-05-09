@@ -12,6 +12,87 @@ import (
 	"github.com/warikan/api/usecase"
 )
 
+func Test_paymentUsecase_GetData(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		userID   int
+		cursor   int
+		mockWant []*model.Payment
+		mockErr  error
+		want     []*usecase.Payment
+		wantErr  error
+	}{
+		{
+			name:   "Success",
+			userID: 1,
+			cursor: 1,
+			mockWant: []*model.Payment{
+				{
+					ID:           1,
+					CategoryName: "カテゴリー名",
+					PayerName:    "パートナー",
+					PaymentDate:  time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
+					Payment:      1234,
+					CreatedAt:    time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
+				},
+			},
+			mockErr: nil,
+			want: []*usecase.Payment{
+				{
+					ID:           1,
+					CategoryName: "カテゴリー名",
+					PayerName:    "パートナー",
+					PaymentDate:  "2020-04-01",
+					Payment:      1234,
+					CreatedAt:    "2020-04-01 09:00:00",
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name:     "Repository error",
+			userID:   1,
+			cursor:   1,
+			mockWant: []*model.Payment{},
+			mockErr:  errors.New("repository error"),
+			want:     []*usecase.Payment{},
+			wantErr:  usecase.InternalServerError{},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mock := &mockPaymentRepository{}
+			mock.On("GetData", tt.userID, tt.cursor).Return(tt.mockWant, tt.mockErr)
+
+			u := usecase.NewPaymentUseCase(mock)
+			got, err := u.GetData(tt.userID, tt.cursor)
+			if tt.wantErr != nil {
+				if err == nil {
+					t.Error("expected error, but got nil")
+					return
+				}
+				if g, e := err.Error(), tt.wantErr.Error(); g != e {
+					t.Errorf("unexpected error:\nwant: %v\ngot : %v", e, g)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Error("expected error, but got nil")
+				return
+			}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("usecase returned wrong response mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestPaymentsUseCase_Create(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -283,6 +364,11 @@ func TestPaymentsUseCase_DeleteByID(t *testing.T) {
 
 type mockPaymentRepository struct {
 	mock.Mock
+}
+
+func (m *mockPaymentRepository) GetData(userID, cursor int) ([]*model.Payment, error) {
+	ret := m.Called(userID, cursor)
+	return ret.Get(0).([]*model.Payment), ret.Error(1)
 }
 
 func (m *mockPaymentRepository) Create(mp *model.Payment) (*model.Payment, error) {
