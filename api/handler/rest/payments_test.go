@@ -226,7 +226,7 @@ func Test_paymentsHandler_UpdateData(t *testing.T) {
 			},
 			body:         `{"category_id":1,"payer_id":1,"payment_date":"2020-04-01T00:00:00+09:00","payment":1234}`,
 			useCaseError: nil,
-			wantCode:     http.StatusCreated,
+			wantCode:     http.StatusOK,
 			wantBody:     "{\"id\":1,\"user_id\":1,\"category_id\":1,\"payer_id\":1,\"description\":{\"String\":\"\",\"Valid\":false},\"payment_date\":\"2020-04-01T00:00:00Z\",\"payment\":1234,\"created_at\":\"2020-04-01T00:00:00Z\",\"updated_at\":\"2020-04-01T00:00:00Z\"}\n",
 		},
 		{

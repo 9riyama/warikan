@@ -14,6 +14,7 @@ type PaymentsHandler interface {
 	CreateData(http.ResponseWriter, *http.Request)
 	UpdateData(http.ResponseWriter, *http.Request)
 	DeleteData(http.ResponseWriter, *http.Request)
+	FetchDate(http.ResponseWriter, *http.Request)
 }
 
 type paymentsHandler struct {
@@ -30,6 +31,10 @@ type paymentHandlerResponse struct {
 	Payments []*usecase.Payment `json:"payments"`
 }
 
+type paymentsDateResponse struct {
+	PaymentsDate []*usecase.PaymentDate `json:"payments_date"`
+}
+
 func (h *paymentsHandler) GetData(w http.ResponseWriter, r *http.Request) {
 
 	strCursor := r.URL.Query().Get("cursor")
@@ -38,8 +43,8 @@ func (h *paymentsHandler) GetData(w http.ResponseWriter, r *http.Request) {
 	}
 	cursor, err := strconv.Atoi(strCursor)
 
-	i := chi.URLParam(r, "user_id")
-	userID, _ := strconv.Atoi(i)
+	strUserID := chi.URLParam(r, "user_id")
+	userID, _ := strconv.Atoi(strUserID)
 
 	res := paymentHandlerResponse{}
 	if err != nil {
@@ -64,8 +69,8 @@ func (h *paymentsHandler) GetData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *paymentsHandler) CreateData(w http.ResponseWriter, r *http.Request) {
-	i := chi.URLParam(r, "user_id")
-	userID, _ := strconv.Atoi(i)
+	strUserID := chi.URLParam(r, "user_id")
+	userID, _ := strconv.Atoi(strUserID)
 
 	req := usecase.CreatePaymentParam{}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -103,7 +108,7 @@ func (h *paymentsHandler) UpdateData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		httpError(w, err)
 	}
@@ -113,7 +118,7 @@ func (h *paymentsHandler) DeleteData(w http.ResponseWriter, r *http.Request) {
 	strUserID := chi.URLParam(r, "user_id")
 	strPayemntID := chi.URLParam(r, "payment_id")
 
-	UserID, err := strconv.Atoi(strUserID)
+	userID, err := strconv.Atoi(strUserID)
 	if err != nil {
 		badRequestError(w)
 		return
@@ -124,9 +129,30 @@ func (h *paymentsHandler) DeleteData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.useCase.DeleteByID(UserID, payemntID); err != nil {
+	if err := h.useCase.DeleteByID(userID, payemntID); err != nil {
 		httpError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *paymentsHandler) FetchDate(w http.ResponseWriter, r *http.Request) {
+
+	strUserID := chi.URLParam(r, "user_id")
+	userID, err := strconv.Atoi(strUserID)
+	if err != nil {
+		badRequestError(w)
+		return
+	}
+
+	paymentsDate, err := h.useCase.FetchDate(userID)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	res := paymentsDateResponse{PaymentsDate: paymentsDate}
+
+	if err := json.NewEncoder(w).Encode(res); err != nil {
+		internalServerError(w)
+	}
 }

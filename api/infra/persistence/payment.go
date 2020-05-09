@@ -61,3 +61,38 @@ func SelectPayments(db XODB, userID, limit, cursor int) ([]*model.Payment, error
 
 	return payments, nil
 }
+
+func SelectPaymentDateByUserID(db XODB, userID int) ([]*model.Payment, error) {
+	var err error
+
+	// sql query
+	var sqlstr = `SELECT to_char(p.payment_date, 'YYYY-MM') as payment_date
+	FROM payments p
+	WHERE p.user_id = $1
+	GROUP BY payment_date
+	ORDER BY payment_date DESC`
+
+	// run query
+	XOLog(sqlstr, userID)
+	q, err := db.Query(sqlstr, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer q.Close()
+
+	payments := make([]*model.Payment, 0)
+	for q.Next() {
+		var p model.Payment
+		err := q.Scan(
+			&p.PaymentYearMonth,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+		payments = append(payments, &p)
+	}
+
+	return payments, nil
+}
