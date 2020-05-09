@@ -41,6 +41,8 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer sqlDB.Close()
+
 	sqlDB.SetMaxOpenConns(5)
 
 	r := chi.NewRouter()
@@ -70,11 +72,12 @@ func main() {
 	paymentsHandler := handler.NewPaymentsHandler(paymentUsecase)
 
 	r.Route("/warikan/v1", func(r chi.Router) {
-		r.Route("/users", func(r chi.Router) {
-			r.Get("/{user_id}/payments", paymentsHandler.GetData)
-			r.Post("/{user_id}/payments", paymentsHandler.CreateData)
-			r.Patch("/{user_id}/payments/{payment_id}", paymentsHandler.UpdateData)
-			r.Delete("/{user_id}/payments/{payment_id}", paymentsHandler.DeleteData)
+		r.Route("/users/{user_id}/payments", func(r chi.Router) {
+			r.Get("/", paymentsHandler.GetData)
+			r.Post("/", paymentsHandler.CreateData)
+			r.Patch("/{payment_id}", paymentsHandler.UpdateData)
+			r.Delete("/{payment_id}", paymentsHandler.DeleteData)
+			r.Get("/monthly_cost", paymentsHandler.FetchDate)
 		})
 		r.Get("/health", healthHandler.Health)
 	})

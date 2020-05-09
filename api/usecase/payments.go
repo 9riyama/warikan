@@ -16,6 +16,7 @@ type PaymentUseCase interface {
 	Create(req *CreatePaymentParam, userID int) (*model.Payment, error)
 	Update(req *UpdatePaymentParam, userID int, paymentID int) (*model.Payment, error)
 	DeleteByID(userID, paymentID int) error
+	FetchDate(userID int) ([]*PaymentDate, error)
 }
 
 func NewPaymentUseCase(r repository.PaymentRepository) *paymentUsecase {
@@ -52,6 +53,10 @@ type UpdatePaymentParam struct {
 	Description sql.NullString `json:"description"`
 	PaymentDate time.Time      `json:"payment_date" validate:"required"`
 	Payment     int            `json:"payment" validate:"required"`
+}
+
+type PaymentDate struct {
+	PaymentDate string `json:"payment_date"`
 }
 
 func (u *paymentUsecase) GetData(userID, cursor int) ([]*Payment, error) {
@@ -143,4 +148,26 @@ func (u *paymentUsecase) DeleteByID(userID, paymentID int) error {
 		return InternalServerError{}
 	}
 	return nil
+}
+
+func (u *paymentUsecase) FetchDate(userID int) ([]*PaymentDate, error) {
+
+	p, err := u.PaymentRepository.FetchDate(userID)
+	if err != nil {
+		log.Println("internal server error")
+		return nil, InternalServerError{}
+	}
+
+	paymentsDate := make([]*PaymentDate, 0, len(p))
+
+	for _, v := range p {
+
+		res := &PaymentDate{
+			PaymentDate: v.PaymentYearMonth,
+		}
+		paymentsDate = append(paymentsDate, res)
+
+	}
+
+	return paymentsDate, nil
 }
