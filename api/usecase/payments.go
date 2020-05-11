@@ -158,11 +158,8 @@ func (u *paymentUsecase) FetchDate(userID int) (*PaymentDate, error) {
 		return nil, InternalServerError{}
 	}
 
-	paymentsDate := new(PaymentDate)
+	pd := new(PaymentDate)
+	pd.PaymentDate = append(pd.PaymentDate, p...)
 
-	for _, v := range p {
-		paymentsDate.PaymentDate = append(paymentsDate.PaymentDate, v)
-	}
-
-	return paymentsDate, nil
+	return pd, nil
 }
