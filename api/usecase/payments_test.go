@@ -386,7 +386,7 @@ func (m *mockPaymentRepository) DeleteByID(userID, paymentID int) error {
 	return ret.Error(0)
 }
 
-func (m *mockPaymentRepository) FetchDate(userID int) ([]*model.Payment, error) {
+func (m *mockPaymentRepository) FetchDate(userID int) ([]*string, error) {
 	ret := m.Called(userID)
-	return ret.Get(0).([]*model.Payment), ret.Error(1)
+	return ret.Get(0).([]*string), ret.Error(1)
 }

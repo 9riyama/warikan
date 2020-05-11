@@ -14,7 +14,7 @@ type PaymentRepository interface {
 	Create(*model.Payment) (*model.Payment, error)
 	Update(*model.Payment) (*model.Payment, error)
 	DeleteByID(userID, paymentID int) error
-	FetchDate(userID int) ([]*model.Payment, error)
+	FetchDate(userID int) ([]*string, error)
 }
 
 func NewPaymentRepository(db *sqlx.DB) *paymentRepository {
@@ -121,13 +121,13 @@ func (r *paymentRepository) DeleteByID(userID, paymentID int) error {
 	return nil
 }
 
-func (r *paymentRepository) FetchDate(userID int) ([]*model.Payment, error) {
+func (r *paymentRepository) FetchDate(userID int) ([]*string, error) {
 
-	payments, err := persistence.SelectPaymentDateByUserID(r.db, userID)
+	paymentsDate, err := persistence.SelectPaymentDateByUserID(r.db, userID)
 
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	return payments, nil
+	return paymentsDate, nil
 }

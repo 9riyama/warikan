@@ -31,10 +31,6 @@ type paymentHandlerResponse struct {
 	Payments []*usecase.Payment `json:"payments"`
 }
 
-type paymentsDateResponse struct {
-	PaymentsDate []*usecase.PaymentDate `json:"payments_date"`
-}
-
 func (h *paymentsHandler) GetData(w http.ResponseWriter, r *http.Request) {
 
 	strCursor := r.URL.Query().Get("cursor")
@@ -145,12 +141,11 @@ func (h *paymentsHandler) FetchDate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	paymentsDate, err := h.useCase.FetchDate(userID)
+	res, err := h.useCase.FetchDate(userID)
 	if err != nil {
 		httpError(w, err)
 		return
 	}
-	res := paymentsDateResponse{PaymentsDate: paymentsDate}
 
 	if err := json.NewEncoder(w).Encode(res); err != nil {
 		internalServerError(w)
