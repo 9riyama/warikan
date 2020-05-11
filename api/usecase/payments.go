@@ -16,7 +16,7 @@ type PaymentUseCase interface {
 	Create(req *CreatePaymentParam, userID int) (*model.Payment, error)
 	Update(req *UpdatePaymentParam, userID int, paymentID int) (*model.Payment, error)
 	DeleteByID(userID, paymentID int) error
-	FetchDate(userID int) ([]*PaymentDate, error)
+	FetchDate(userID int) (*PaymentDate, error)
 }
 
 func NewPaymentUseCase(r repository.PaymentRepository) *paymentUsecase {
@@ -56,7 +56,7 @@ type UpdatePaymentParam struct {
 }
 
 type PaymentDate struct {
-	PaymentDate string `json:"payment_date"`
+	PaymentDate []*string `json:"payment_date"`
 }
 
 func (u *paymentUsecase) GetData(userID, cursor int) ([]*Payment, error) {
@@ -150,7 +150,7 @@ func (u *paymentUsecase) DeleteByID(userID, paymentID int) error {
 	return nil
 }
 
-func (u *paymentUsecase) FetchDate(userID int) ([]*PaymentDate, error) {
+func (u *paymentUsecase) FetchDate(userID int) (*PaymentDate, error) {
 
 	p, err := u.PaymentRepository.FetchDate(userID)
 	if err != nil {
@@ -158,16 +158,8 @@ func (u *paymentUsecase) FetchDate(userID int) ([]*PaymentDate, error) {
 		return nil, InternalServerError{}
 	}
 
-	paymentsDate := make([]*PaymentDate, 0, len(p))
+	pd := new(PaymentDate)
+	pd.PaymentDate = append(pd.PaymentDate, p...)
 
-	for _, v := range p {
-
-		res := &PaymentDate{
-			PaymentDate: v.PaymentYearMonth,
-		}
-		paymentsDate = append(paymentsDate, res)
-
-	}
-
-	return paymentsDate, nil
+	return pd, nil
 }

@@ -62,7 +62,7 @@ func SelectPayments(db XODB, userID, limit, cursor int) ([]*model.Payment, error
 	return payments, nil
 }
 
-func SelectPaymentDateByUserID(db XODB, userID int) ([]*model.Payment, error) {
+func SelectPaymentDateByUserID(db XODB, userID int) ([]*string, error) {
 	var err error
 
 	// sql query
@@ -81,18 +81,16 @@ func SelectPaymentDateByUserID(db XODB, userID int) ([]*model.Payment, error) {
 
 	defer q.Close()
 
-	payments := make([]*model.Payment, 0)
+	paymentsDate := []*string{}
 	for q.Next() {
-		var p model.Payment
-		err := q.Scan(
-			&p.PaymentYearMonth,
-		)
+		var d string
+		err := q.Scan(&d)
 
 		if err != nil {
 			return nil, err
 		}
-		payments = append(payments, &p)
+		paymentsDate = append(paymentsDate, &d)
 	}
 
-	return payments, nil
+	return paymentsDate, nil
 }
