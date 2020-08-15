@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,39 +10,39 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/lib/pq"
-
-	"github.com/warikan/api/domain/repository"
-	handler "github.com/warikan/api/handler/rest"
-	"github.com/warikan/api/usecase"
-
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
-	_ "github.com/jackc/pgx/stdlib"
-	"github.com/jmoiron/sqlx"
+	_ "github.com/jackc/pgx/v4/stdlib"
+	"go.uber.org/zap"
+
+	handler "github.com/warikan/api/handler/rest"
+	"github.com/warikan/api/infra"
+	"github.com/warikan/api/usecase"
+	"github.com/warikan/db"
+	"github.com/warikan/log"
 )
 
 var (
-	port   string
-	driver string
+	port           = ":8080"
+	maxconn        = 5
+	configFilePath = "_config/config.yaml"
+	version        = "unknown"
 )
 
-func init() {
-	flag.StringVar(&port, "port", ":9292", "tcp host:port to connect")
-	flag.StringVar(&driver, "driver", "postgres", "db driver: postgres")
-	flag.Parse()
-}
-
 func main() {
-	dsn := os.Getenv("WARIKAN_DB_DSN")
-	sqlDB, err := sqlx.Connect(driver, dsn)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer sqlDB.Close()
+	flag.StringVar(&port, "port", port, "tcp host:port to connect")
+	flag.StringVar(&configFilePath, "configFilePath", configFilePath, "config filePath")
+	flag.IntVar(&maxconn, "maxconn", maxconn, "max db connection")
 
-	sqlDB.SetMaxOpenConns(5)
+	log.Init()
+	// nolint:errcheck
+	defer log.Logger.Sync()
+	if err := db.Init(maxconn, configFilePath); err != nil {
+		log.Logger.Error("failed to initialize db", zap.Error(err))
+		os.Exit(1)
+	}
+	defer db.Close()
 
 	r := chi.NewRouter()
 
@@ -63,11 +62,11 @@ func main() {
 
 	r.Use(cors.Handler)
 
-	healthRepositry := repository.NewHealthRepository(sqlDB)
-	healthUseCase := usecase.NewHealthUseCase(healthRepositry)
-	healthHandler := handler.NewHealthHandler(healthUseCase)
+	healthRepository := infra.NewPingPersistencePostgres(db.Pool)
+	healthUseCase := usecase.NewHealthUseCase(healthRepository)
+	healthHandler := handler.NewHealthHandler(healthUseCase, version)
 
-	paymentRepository := repository.NewPaymentRepository(sqlDB)
+	paymentRepository := infra.NewPaymentsRepository(db.Pool)
 	paymentUsecase := usecase.NewPaymentUseCase(paymentRepository)
 	paymentsHandler := handler.NewPaymentsHandler(paymentUsecase)
 
@@ -79,7 +78,7 @@ func main() {
 			r.Delete("/{payment_id}", paymentsHandler.DeleteData)
 			r.Get("/monthly_cost", paymentsHandler.FetchDate)
 		})
-		r.Get("/health", healthHandler.Health)
+		r.Get("/health", healthHandler.Check)
 	})
 
 	srv := &http.Server{
@@ -88,11 +87,11 @@ func main() {
 	}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Printf("Listen and serve failed.%v\n", err)
+			log.Logger.Error("Listen and serve failed.", zap.Error(err))
 			os.Exit(1)
 		}
 	}()
-	log.Println("start warikan-api server.")
+	log.Logger.Info("start warikan-api server", zap.String("version", version))
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, os.Interrupt)
@@ -101,9 +100,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf("failed to srv.Shutdown  %v\n", err)
+		log.Logger.Error("err", zap.Error(err))
 	}
-	log.Println("shutdown warikan-api server.")
+	log.Logger.Info("shutdown warikan-api server", zap.String("version", version))
 }
 
 func allowedOrigins() []string {

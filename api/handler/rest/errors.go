@@ -2,63 +2,92 @@ package rest
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
+	"go.uber.org/zap"
+
 	"github.com/warikan/api/usecase"
+	"github.com/warikan/log"
 )
 
 type errorMessage struct {
-	Message string `json:"message"`
+	Message string `json:"msg"`
 }
 
-func httpError(w http.ResponseWriter, err error) {
+const (
+	badRequestErrorMsg     = "要求の形式が正しくありません。"
+	notFoundErrorMsg       = "ページが見つかりません。"
+	internalServerErrorMsg = "システム内部エラーが発生しました。"
+	conflictErrorMsg       = "競合が発生しました。"
+)
+
+func httpError(w http.ResponseWriter, err error, msg string) {
 	switch err.(type) {
 	case usecase.UnauthorizedError:
-		unauthorizedError(w)
-	case usecase.NotFoundError:
-		notFoundError(w)
+		unauthorizedError(w, msg)
+	case usecase.BadRequestError:
+		badRequestError(w, msg)
 	case usecase.InvalidParamError:
-		badRequestError(w)
-	case usecase.InternalServerError:
-		internalServerError(w)
+		badRequestError(w, msg)
+	case usecase.NotFoundError:
+		notFoundError(w, msg)
 	case usecase.ConflictError:
-		conflictError(w)
+		conflictError(w, msg)
 	default:
-		internalServerError(w)
+		internalServerError(w, msg)
 	}
 }
 
-func unauthorizedError(w http.ResponseWriter) {
+func unauthorizedError(w http.ResponseWriter, msg string) {
 	code := http.StatusUnauthorized
-	errorResponse(w, code)
+	m := msg
+	if msg == "" {
+		m = "サーバーとの認証に失敗しました。再度ログインしてください。"
+	}
+	errorResponse(w, code, m)
 }
 
-func badRequestError(w http.ResponseWriter) {
+func badRequestError(w http.ResponseWriter, msg string) {
 	code := http.StatusBadRequest
-	errorResponse(w, code)
+	m := msg
+	if msg == "" {
+		m = badRequestErrorMsg
+	}
+	errorResponse(w, code, m)
 }
 
-func notFoundError(w http.ResponseWriter) {
+func notFoundError(w http.ResponseWriter, msg string) {
 	code := http.StatusNotFound
-	errorResponse(w, code)
+	m := msg
+	if msg == "" {
+		m = notFoundErrorMsg
+	}
+	errorResponse(w, code, m)
 }
 
-func conflictError(w http.ResponseWriter) {
-	code := http.StatusConflict
-	errorResponse(w, code)
-}
-
-func internalServerError(w http.ResponseWriter) {
+func internalServerError(w http.ResponseWriter, msg string) {
 	code := http.StatusInternalServerError
-	errorResponse(w, code)
+	m := msg
+	if msg == "" {
+		m = internalServerErrorMsg
+	}
+	errorResponse(w, code, m)
 }
 
-func errorResponse(w http.ResponseWriter, code int) {
+func conflictError(w http.ResponseWriter, msg string) {
+	code := http.StatusConflict
+	m := msg
+	if msg == "" {
+		m = conflictErrorMsg
+	}
+	errorResponse(w, code, m)
+}
+
+func errorResponse(w http.ResponseWriter, code int, msg string) {
 	w.WriteHeader(code)
-	em := errorMessage{Message: http.StatusText(code)}
+	em := errorMessage{Message: msg}
 	err := json.NewEncoder(w).Encode(em)
 	if err != nil {
-		log.Printf("failed to json encode %v\n", err)
+		log.Logger.Error("failed to json encode", zap.Error(err))
 	}
 }

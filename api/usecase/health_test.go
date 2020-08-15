@@ -1,14 +1,17 @@
 package usecase_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
+
+	"github.com/warikan/api/domain/repository"
 	"github.com/warikan/api/usecase"
 )
 
-func TestHealthUseCase_Execute(t *testing.T) {
+func Test_healthUseCase_Check(t *testing.T) {
 	tests := []struct {
 		name    string
 		mockErr error
@@ -20,9 +23,9 @@ func TestHealthUseCase_Execute(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name:    "Repository err",
+			name:    "Repository error",
 			mockErr: errors.New("repository error"),
-			wantErr: usecase.InternalServerError{},
+			wantErr: usecase.ServiceUnavailableError{},
 		},
 	}
 
@@ -31,11 +34,11 @@ func TestHealthUseCase_Execute(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mock := &mockPingReposity{}
+			mock := &mockPingRepository{}
 			mock.On("Ping").Return(tt.mockErr)
 
 			u := usecase.NewHealthUseCase(mock)
-			err := u.Execute()
+			err := u.Check(context.Background())
 			if tt.wantErr == nil {
 				if err != nil {
 					t.Errorf("err should be nil, but got %q", err)
@@ -54,10 +57,12 @@ func TestHealthUseCase_Execute(t *testing.T) {
 	}
 }
 
-type mockPingReposity struct {
+var _ repository.PingRepository = &mockPingRepository{}
+
+type mockPingRepository struct {
 	mock.Mock
 }
 
-func (m *mockPingReposity) Ping() error {
+func (m *mockPingRepository) Ping(ctx context.Context) error {
 	return m.Called().Error(0)
 }

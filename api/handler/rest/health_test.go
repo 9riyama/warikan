@@ -1,31 +1,36 @@
 package rest_test
 
 import (
-	"errors"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/warikan/api/handler/rest"
+	"github.com/warikan/api/usecase"
 )
 
-func TestHealthHandler(t *testing.T) {
+func TestHealthHandler_Check(t *testing.T) {
 	tests := []struct {
-		name    string
-		mockErr error
-		want    int
+		name     string
+		mockErr  error
+		wantCode int
+		wantBody string
 	}{
 		{
-			name:    "Success",
-			mockErr: nil,
-			want:    http.StatusOK,
+			name:     "Success",
+			mockErr:  nil,
+			wantCode: http.StatusOK,
+			wantBody: `{"status":"pass","version":"unknown"}` + "\n",
 		},
 		{
-			name:    "Use case error",
-			mockErr: errors.New("use case error"),
-			want:    http.StatusInternalServerError,
+			name:     "Unhealthy",
+			mockErr:  usecase.ServiceUnavailableError{},
+			wantCode: http.StatusServiceUnavailable,
+			wantBody: `{"status":"fail","version":"unknown"}` + "\n",
 		},
 	}
 
@@ -34,26 +39,29 @@ func TestHealthHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mock := new(mockHealthUseCase)
-			mock.On("Execute").Return(tt.mockErr)
+			mock := &mockHealthUseCase{}
+			mock.On("Check").Return(tt.mockErr)
 
-			r := httptest.NewRequest(http.MethodGet, "/health", nil)
+			h := rest.NewHealthHandler(mock, "unknown")
+			r := httptest.NewRequest(http.MethodGet, "/", nil)
 			rr := httptest.NewRecorder()
-
-			h := rest.NewHealthHandler(mock)
-			h.Health(rr, r)
-			if diff := cmp.Diff(tt.want, rr.Code); diff != "" {
-				t.Errorf("Health() mismatch status code (-want +got):\n%s", diff)
+			h.Check(rr, r)
+			if diff := cmp.Diff(tt.wantCode, rr.Code); diff != "" {
+				t.Errorf("Check() mismatch status code (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.wantCode, rr.Code); diff != "" {
+				t.Errorf("Check() mismatch body (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
+var _ usecase.HealthUseCase = &mockHealthUseCase{}
+
 type mockHealthUseCase struct {
 	mock.Mock
 }
 
-func (m *mockHealthUseCase) Execute() error {
-	ret := m.Called()
-	return ret.Error(0)
+func (m *mockHealthUseCase) Check(ctx context.Context) error {
+	return m.Called().Error(0)
 }

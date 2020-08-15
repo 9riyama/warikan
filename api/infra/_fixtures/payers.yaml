@@ -1,0 +1,6 @@
+# payers.yml
+- id: 1
+  name: "ユーザー"
+
+- id: 2
+  name: "パートナー"

@@ -1,0 +1,11 @@
+development:
+  dialect: postgres
+  datasource: dbname=warikan port=5432 password=password user=postgres sslmode=disable
+  dir: _db/migrate
+  table: migrations
+
+test:
+  dialect: postgres
+  datasource: dbname=warikan_test port=5432 password=password user=postgres sslmode=disable
+  dir: _db/migrate
+  table: migrations
