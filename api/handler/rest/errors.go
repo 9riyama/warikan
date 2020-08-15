@@ -2,7 +2,6 @@ package rest
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -84,12 +83,6 @@ func conflictError(w http.ResponseWriter, msg string) {
 	errorResponse(w, code, m)
 }
 
-func loginError(w http.ResponseWriter) {
-	code := http.StatusBadRequest
-	m := "ログインに失敗しました。ログインできない場合は「パスワードをお忘れの方」からパスワードの再設定を行ってください。"
-	errorResponse(w, code, m)
-}
-
 func errorResponse(w http.ResponseWriter, code int, msg string) {
 	w.WriteHeader(code)
 	em := errorMessage{Message: msg}
@@ -97,24 +90,4 @@ func errorResponse(w http.ResponseWriter, code int, msg string) {
 	if err != nil {
 		log.Logger.Error("failed to json encode", zap.Error(err))
 	}
-}
-
-func badRequestErrorText(w http.ResponseWriter, msg string) {
-	txt := badRequestErrorMsg
-	if msg != "" {
-		txt = msg
-	}
-	w.WriteHeader(http.StatusBadRequest)
-	fmt.Fprint(w, txt)
-	w.Header().Set("Content-Type", "text/html")
-}
-
-func internalServerErrorText(w http.ResponseWriter, msg string) {
-	txt := internalServerErrorMsg
-	if msg != "" {
-		txt = msg
-	}
-	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprint(w, txt)
-	w.Header().Set("Content-Type", "text/html")
 }
