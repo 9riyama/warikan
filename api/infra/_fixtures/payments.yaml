@@ -1,0 +1,8 @@
+# payments.yml
+- id: 19999
+  user_id: 10001
+  category_id: 1
+  payer_id: 1
+  description: "更新前"
+  payment_date: 2020-04-01T00:00:00-00:00
+  payment: 5555

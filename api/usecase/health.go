@@ -1,30 +1,34 @@
 package usecase
 
 import (
-	"log"
+	"context"
+
+	"go.uber.org/zap"
 
 	"github.com/warikan/api/domain/repository"
+	"github.com/warikan/log"
 )
 
 type HealthUseCase interface {
-	Execute() error
+	Check(ctx context.Context) error
 }
 
-func NewHealthUseCase(r repository.HealthRepository) *healthUseCase {
+func NewHealthUseCase(pr repository.PingRepository) *healthUseCase {
 	return &healthUseCase{
-		repository: r,
+		pr: pr,
 	}
 }
 
+var _ HealthUseCase = &healthUseCase{}
+
 type healthUseCase struct {
-	repository repository.HealthRepository
+	pr repository.PingRepository
 }
 
-func (h *healthUseCase) Execute() error {
-	err := h.repository.Ping()
-	if err != nil {
-		log.Printf("failed to ping to database%v\n", err)
-		return InternalServerError{}
+func (uc *healthUseCase) Check(ctx context.Context) error {
+	if err := uc.pr.Ping(ctx); err != nil {
+		log.Logger.Error("unhealthy database:", zap.Error(err))
+		return ServiceUnavailableError{}
 	}
 	return nil
 }

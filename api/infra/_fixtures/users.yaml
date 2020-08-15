@@ -1,0 +1,11 @@
+# users.yml
+- id: 10001
+  user_name: "ユーザーネーム"
+  partner_name: "パートナーネーム"
+  email: "test@example.com"
+  password: "password1234"
+  user_image: "user_image"
+  partner_image: "partner_image"
+  proportion: 50
+  created_at: 2020-02-29T00:00:00-00:00
+  updated_at: 2020-02-29T00:00:00-00:00

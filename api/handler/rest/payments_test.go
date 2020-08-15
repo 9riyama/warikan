@@ -69,7 +69,7 @@ func Test_paymentsHandler_GetData(t *testing.T) {
 			cursor:       999,
 			useCaseError: usecase.InternalServerError{},
 			wantCode:     500,
-			wantBody:     "{\"message\":\"Internal Server Error\"}\n",
+			wantBody:     `{"msg":"システム内部エラーが発生しました。"}` + "\n",
 		},
 	}
 
@@ -155,7 +155,7 @@ func Test_paymentsHandler_CreateData(t *testing.T) {
 			body:         `{"category_id":1,"payer_id":1,"payment_date":"2020-04-01T00:00:00+09:00","payment":1234}`,
 			useCaseError: errors.New("usecase error"),
 			wantCode:     http.StatusInternalServerError,
-			wantBody:     "{\"message\":\"Internal Server Error\"}\n",
+			wantBody:     `{"msg":"システム内部エラーが発生しました。"}` + "\n",
 		},
 	}
 	for _, tt := range tests {
@@ -246,7 +246,7 @@ func Test_paymentsHandler_UpdateData(t *testing.T) {
 			body:         `{"category_id":1,"payer_id":1,"payment_date":"2020-04-01T00:00:00+09:00","payment":1234}`,
 			useCaseError: errors.New("usecase error"),
 			wantCode:     http.StatusInternalServerError,
-			wantBody:     "{\"message\":\"Internal Server Error\"}\n",
+			wantBody:     `{"msg":"システム内部エラーが発生しました。"}` + "\n",
 		},
 	}
 	for _, tt := range tests {
@@ -307,7 +307,7 @@ func Test_paymentsHandler_DeleteData(t *testing.T) {
 			paymentID:    1,
 			useCaseError: errors.New("usecase error"),
 			wantCode:     http.StatusBadRequest,
-			wantBody:     "{\"message\":\"Bad Request\"}\n",
+			wantBody:     `{"msg":"要求の形式が正しくありません。"}` + "\n",
 		},
 		{
 			name:         "Bad request error userID is String",
@@ -317,7 +317,7 @@ func Test_paymentsHandler_DeleteData(t *testing.T) {
 			paymentID:    1,
 			useCaseError: errors.New("usecase error"),
 			wantCode:     http.StatusBadRequest,
-			wantBody:     "{\"message\":\"Bad Request\"}\n",
+			wantBody:     `{"msg":"要求の形式が正しくありません。"}` + "\n",
 		},
 		{
 			name:         "Internal server error",
@@ -327,7 +327,7 @@ func Test_paymentsHandler_DeleteData(t *testing.T) {
 			paymentID:    1,
 			useCaseError: errors.New("usecase error"),
 			wantCode:     http.StatusInternalServerError,
-			wantBody:     "{\"message\":\"Internal Server Error\"}\n",
+			wantBody:     `{"msg":"システム内部エラーが発生しました。"}` + "\n",
 		},
 	}
 	for _, tt := range tests {
