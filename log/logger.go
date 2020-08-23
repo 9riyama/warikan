@@ -15,6 +15,8 @@ func Init() {
 	switch os.Getenv("GO_ENV") {
 	case "production":
 		Logger = NewStackdriverProduction()
+	case "test":
+		Logger = NewNop()
 	default:
 		Logger = NewStackdriverDevelopment()
 	}
@@ -41,8 +43,8 @@ func NewStackdriverConfig() *zap.Config {
 
 func NewCore(cfg *zap.Config) zapcore.Core {
 	return zapcore.NewTee(
-		newStdoutCore(cfg.EncoderConfig),
-		newStderrCore(cfg.EncoderConfig),
+		newStdoutCore(cfg),
+		newStderrCore(cfg),
 	)
 }
 
@@ -60,22 +62,26 @@ func NewStackdriverDevelopment() *zap.Logger {
 	return zap.New(core)
 }
 
-func newStdoutCore(encoderConfig zapcore.EncoderConfig) zapcore.Core {
+func NewNop() *zap.Logger {
+	return zap.NewNop()
+}
+
+func newStdoutCore(cfg *zap.Config) zapcore.Core {
 	return zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig),
+		zapcore.NewJSONEncoder(cfg.EncoderConfig),
 		zapcore.Lock(os.Stdout),
 		zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-			return lvl <= zapcore.ErrorLevel
+			return lvl <= zapcore.ErrorLevel && cfg.Level.Enabled(lvl)
 		}),
 	)
 }
 
-func newStderrCore(encoderConfig zapcore.EncoderConfig) zapcore.Core {
+func newStderrCore(cfg *zap.Config) zapcore.Core {
 	return zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig),
+		zapcore.NewJSONEncoder(cfg.EncoderConfig),
 		zapcore.Lock(os.Stderr),
 		zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-			return zapcore.ErrorLevel < lvl
+			return zapcore.ErrorLevel < lvl && cfg.Level.Enabled(lvl)
 		}),
 	)
 }
